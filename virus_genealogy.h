@@ -51,6 +51,13 @@ class VirusGenealogy{
 				Virus virus;
 				set<shared_ptr<Virus_node> > children, parents;
 				Virus_node(Virus virus) : virus(virus) {}
+				//w sumie to jest niepotrzebny ale głupio wygląda jak 
+				//~VirusGenealogy jest a tego nie ma :P
+				~Virus_node()
+				{
+					children.clear();
+					parents.clear();
+				}
 				
 				vector<typename Virus::id_type> get_children()
 				{
@@ -85,7 +92,12 @@ class VirusGenealogy{
 		{
 			all_viruses.insert(make_pair(stem_id, stem_node));
 		}
-
+		
+		~VirusGenealogy()
+		{
+			remove(stem_node);
+		}
+		
 		// Zwraca identyfikator wirusa macierzystego.
 		typename Virus::id_type get_stem_id() const
 		{

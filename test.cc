@@ -94,10 +94,19 @@ void pchar_test()
   }
 }
 	
+void memory_test()
+{
+	VirusGenealogy<Virus> gens("A");
+	gens.create("B", "A");
+	gens.create("C", "B");
+	gens.create("D", "C");
+	//gens.remove("B");
 	
+}
 int main()
 {
+	//test1();
 	pchar_test();
-	
+	//memory_test();
 	return 0;
 }
