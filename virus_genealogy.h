@@ -6,9 +6,42 @@
 #include<set>
 #include<utility>
 #include<memory>
-
+#include<exception>
 
 using namespace std;
+
+class VirusNotFound : public exception
+{
+	public:
+		string s = "Virus not found.";
+		VirusNotFound () {}
+		virtual const char* what() const throw() 
+		{
+		return s.c_str();
+		}
+};
+
+class VirusAlreadyCreated : public exception
+{
+	public:
+		string s = "Virus already created.";
+		VirusAlreadyCreated() {}
+		virtual const char* what() const throw() 
+		{
+		return s.c_str();
+		}
+};
+
+class TriedToRemoveStemVirus : public exception
+{
+	public:
+		string s = "Tried to remove stem virus.";
+		TriedToRemoveStemVirus() {}
+		virtual const char* what() const throw() 
+		{
+		return s.c_str();
+		}
+};
 
 template<class Virus>
 class VirusGenealogy{
@@ -33,6 +66,7 @@ class VirusGenealogy{
 					for (shared_ptr<Virus_node> s : parents)
 						v.push_back(s->virus.get_id());
 					return v; // tu nie ma niepotrzebnego kopiowania wektora?
+					//pewnie jest tyle że sygnatura bez & była podana w treści
 				}
 				
 			
@@ -118,23 +152,13 @@ class VirusGenealogy{
 		
 };
 
-/*
-
-template<class Virus>
-vector<typename Virus::id_type> VirusGenealogy<Virus>::get_parents(typename Virus::id_type const &id) const;
-vector<typename Virus::id_type> VirusGenealogy<Virus>::get_parents()
-		
-*/
-
-
 
 template<class Virus>
 vector<typename Virus::id_type> VirusGenealogy<Virus>::get_children(typename Virus::id_type const &id) const
 {
 	auto it = all_viruses.find(id);
 	if(it == all_viruses.end()){
-		//rzuc wyjatek VirusNotFound
-		exit(0);
+		throw VirusNotFound();
 	}
 	else{
 		return it->second->get_children();
@@ -146,8 +170,7 @@ vector<typename Virus::id_type> VirusGenealogy<Virus>::get_parents(typename Viru
 {
 	auto it = all_viruses.find(id);
 	if(it == all_viruses.end()){
-		//rzuc wyjatek VirusNotFound
-		exit(0);
+		throw VirusNotFound();
 	}
 	else{
 		return it->second->get_parents();
@@ -170,8 +193,7 @@ Virus& VirusGenealogy<Virus>::operator[](typename Virus::id_type const &id) cons
 {
 	auto it = all_viruses.find(id);
 	if(it == all_viruses.end()){
-		//rzuc wyjatek VirusNotFound
-		exit(0);
+		throw VirusNotFound();
 	}
 	else{
 		return it->second->virus;
@@ -183,13 +205,11 @@ template<class Virus>
 void VirusGenealogy<Virus>::create(typename Virus::id_type const &id, typename Virus::id_type const &parent_id)
 {
 	if(all_viruses.find(id) != all_viruses.end()){
-		//rzuc wyjatek VirusAlreadyCreated
-		exit(0);
+		throw VirusAlreadyCreated();
 	}
 	auto it = all_viruses.find(parent_id);
 	if(it == all_viruses.end()){
-		//rzuc wyjatek VirusNotFound
-		exit(0);
+		throw VirusNotFound();
 	}
 	
 	shared_ptr<Virus_node> to_add(new Virus_node(Virus(id)));
@@ -203,23 +223,21 @@ template<class Virus>
 void VirusGenealogy<Virus>::create(typename Virus::id_type const &id, vector<typename Virus::id_type> const &parent_ids)
 {
 	if(all_viruses.find(id) != all_viruses.end()){
-		//rzuc wyjatek VirusAlreadyCreated
-		exit(0);
+		throw VirusAlreadyCreated();
 	}
 	
 	auto it = all_viruses.begin(); 
 	// auto == typename std::map<typename Virus::id_type, shared_ptr<Virus_node> >::iterator
 	// w tej postaci chyba bardziej czytelne
-	for(int i = 0; i < parent_ids.size(); ++i){
+	for(unsigned int i = 0; i < parent_ids.size(); ++i){
 		static auto it = all_viruses.find(parent_ids.at(i));
 		if(it == all_viruses.end()){
-			//rzuc wyjatek VirusNotFound
-			exit(0);
+		throw VirusNotFound();
 		}
 	}
 	
 	shared_ptr<Virus_node> to_add(new Virus_node(Virus(id)));
-	for(int i = 0; i < parent_ids.size(); ++i){
+	for(unsigned int i = 0; i < parent_ids.size(); ++i){
 		it = all_viruses.find(parent_ids.at(i));
 		to_add->parents.insert(it->second);
 		it->second->children.insert(to_add);
@@ -235,13 +253,13 @@ void VirusGenealogy<Virus>::connect(typename Virus::id_type const &child_id, typ
 	auto parent_it = all_viruses.find(parent_id);
 	
 	if(child_it == all_viruses.end() || parent_it == all_viruses.end()){
-		//rzuc wyjatek VirusNotFound
-		exit(0);
+		throw VirusNotFound();
 	}
-	// co jesli ten syn juz jest ojcem nowego ojca?
-	// co jesli krawedz istnieje?
-	// co jesli ojciec == syn?
-	// co jesli syn == stem_node->virus.get_id()?
+	// co jesli ten syn juz jest ojcem nowego ojca? po cyklu niezdefiniowane zachowanie
+	// co jesli krawedz istnieje? nei dodajemy kolejnej
+	// co jesli ojciec == syn? jak pkt.1 cykl
+	// co jesli syn == stem_node->virus.get_id()? w sumie nie mam pojęcia, chyba nie powinniśmy
+	//stem node-a zmieniać
 	
 	child_it->second->parents.insert(parent_it->second);
 	parent_it->second->children.insert(child_it->second);
@@ -253,13 +271,11 @@ template<class Virus>
 void VirusGenealogy<Virus>::remove(typename Virus::id_type const &id)
 {
 	if(id == stem_node->virus.get_id()){
-		//rzuc wyjatek TriedToRemoveStemVirus
-		exit(0);
+		throw TriedToRemoveStemVirus();
 	}
 	
 	if(all_viruses.find(id) == all_viruses.end()){
-		//rzuc wyjatek VirusNotFound
-		exit(0);
+		throw VirusNotFound();
 	}
 	
 	auto me = all_viruses.find(id)->second;
@@ -283,8 +299,11 @@ void VirusGenealogy<Virus>::remove(shared_ptr<Virus_node> me)
 	
 	it = me->children.begin();
 	while(it != me->children.end()){
-		if((*it)->parents.find(me) != (*it)->parents.end())
+		if((*it)->parents.find(me) != (*it)->parents.end()){
 			(*it)->parents.erase(me);
+			if((*it)->parents.size() == 0)
+				remove(*it); // usuwamy jak nie ma już żadnego ojca
+		}
 		++it;
 	}
 	
