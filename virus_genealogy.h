@@ -2,10 +2,12 @@
 #define VIRUS_GENEALOGY_H
 
 #include<vector>
-#include<memory>
 #include<map>
-#include<utility>
 #include<set>
+#include<utility>
+#include<memory>
+
+
 using namespace std;
 
 template<class Virus>
@@ -30,11 +32,14 @@ class VirusGenealogy{
 					vector<typename Virus::id_type> v;
 					for (shared_ptr<Virus_node> s : parents)
 						v.push_back(s->virus.get_id());
-					return v;
+					return v; // tu nie ma niepotrzebnego kopiowania wektora?
 				}
 				
 			
 		};
+		
+		// Pomocnicza funkcja do rekurencyjnego usuwania grafu.
+		void remove(shared_ptr<Virus_node> nd);
 				
 		shared_ptr<Virus_node> stem_node;
 		map<typename Virus::id_type, shared_ptr<Virus_node> > all_viruses;
@@ -56,42 +61,16 @@ class VirusGenealogy{
 		// Zwraca listę identyfikatorów bezpośrednich następników wirusa
 		// o podanym identyfikatorze.
 		// Zgłasza wyjątek VirusNotFound, jeśli dany wirus nie istnieje.
-		vector<typename Virus::id_type> get_children(typename Virus::id_type const &id) const
-		{
-			auto it = all_viruses.find(id);
-			if(it == all_viruses.end()){
-				//rzuc wyjatek
-				exit(0);
-			}
-			else{
-				return it->second->get_children();
-			}
-		}
+		vector<typename Virus::id_type> get_children(typename Virus::id_type const &id) const;
 
 		// Zwraca listę identyfikatorów bezpośrednich poprzedników wirusa
 		// o podanym identyfikatorze.
 		// Zgłasza wyjątek VirusNotFound, jeśli dany wirus nie istnieje.
-		vector<typename Virus::id_type> get_parents(typename Virus::id_type const &id) const
-		{
-			auto it = all_viruses.find(id);
-			if(it == all_viruses.end()){
-				//rzuc wyjatek
-				exit(0);
-			}
-			else{
-				return it->second->get_parents();
-			}
-		}
+		vector<typename Virus::id_type> get_parents(typename Virus::id_type const &id) const;
 		
 		// Sprawdza, czy wirus o podanym identyfikatorze istnieje.
-		bool exists(typename Virus::id_type const &id) const
-		{
-			auto it = all_viruses.find(id);
-			if(it == all_viruses.end())
-				return false;
-			else
-				return true;
-		}
+		bool exists(typename Virus::id_type const &id) const;
+		
 			
 
 		// Zwraca referencję do obiektu reprezentującego wirus o podanym
@@ -119,6 +98,24 @@ class VirusGenealogy{
 		// wirusa macierzystego.
 		void remove(typename Virus::id_type const &id);
 		
+		void printAll()
+		{
+			for(auto map_it = all_viruses.begin(); map_it != all_viruses.end(); ++map_it){
+				
+				cout << "wezel " << map_it->first << ":" << endl << "dziecioki: ";
+				for(auto child_it = map_it->second->children.begin(); child_it != map_it->second->children.end(); ++child_it){
+					cout << (*child_it)->virus.get_id() << " ";
+				}
+				cout << endl << "ojcowie: ";
+				for(auto parent_it = map_it->second->parents.begin(); parent_it != map_it->second->parents.end(); ++parent_it){
+					cout << (*parent_it)->virus.get_id() << " ";
+				}
+				cout << endl;
+			}
+		
+		
+		}
+		
 };
 
 /*
@@ -128,4 +125,176 @@ vector<typename Virus::id_type> VirusGenealogy<Virus>::get_parents(typename Viru
 vector<typename Virus::id_type> VirusGenealogy<Virus>::get_parents()
 		
 */
+
+
+
+template<class Virus>
+vector<typename Virus::id_type> VirusGenealogy<Virus>::get_children(typename Virus::id_type const &id) const
+{
+	auto it = all_viruses.find(id);
+	if(it == all_viruses.end()){
+		//rzuc wyjatek VirusNotFound
+		exit(0);
+	}
+	else{
+		return it->second->get_children();
+	}
+}
+
+template<class Virus>		
+vector<typename Virus::id_type> VirusGenealogy<Virus>::get_parents(typename Virus::id_type const &id) const
+{
+	auto it = all_viruses.find(id);
+	if(it == all_viruses.end()){
+		//rzuc wyjatek VirusNotFound
+		exit(0);
+	}
+	else{
+		return it->second->get_parents();
+	}
+}
+
+template<class Virus>
+bool VirusGenealogy<Virus>::exists(typename Virus::id_type const &id) const
+{
+	auto it = all_viruses.find(id);
+	if(it == all_viruses.end())
+		return false;
+	else
+		return true;
+}
+
+// [ADD] zakładam że nie zostanie zmieniony identyfikator wirusa
+template<class Virus>
+Virus& VirusGenealogy<Virus>::operator[](typename Virus::id_type const &id) const
+{
+	auto it = all_viruses.find(id);
+	if(it == all_viruses.end()){
+		//rzuc wyjatek VirusNotFound
+		exit(0);
+	}
+	else{
+		return it->second->virus;
+	}
+}
+
+// [ADD]
+template<class Virus>
+void VirusGenealogy<Virus>::create(typename Virus::id_type const &id, typename Virus::id_type const &parent_id)
+{
+	if(all_viruses.find(id) != all_viruses.end()){
+		//rzuc wyjatek VirusAlreadyCreated
+		exit(0);
+	}
+	auto it = all_viruses.find(parent_id);
+	if(it == all_viruses.end()){
+		//rzuc wyjatek VirusNotFound
+		exit(0);
+	}
+	
+	shared_ptr<Virus_node> to_add(new Virus_node(Virus(id)));
+	to_add->parents.insert(it->second);
+	it->second->children.insert(to_add);
+	all_viruses.insert(make_pair(id, to_add));
+}
+
+// [ADD]
+template<class Virus>
+void VirusGenealogy<Virus>::create(typename Virus::id_type const &id, vector<typename Virus::id_type> const &parent_ids)
+{
+	if(all_viruses.find(id) != all_viruses.end()){
+		//rzuc wyjatek VirusAlreadyCreated
+		exit(0);
+	}
+	
+	auto it = all_viruses.begin(); 
+	// auto == typename std::map<typename Virus::id_type, shared_ptr<Virus_node> >::iterator
+	// w tej postaci chyba bardziej czytelne
+	for(int i = 0; i < parent_ids.size(); ++i){
+		static auto it = all_viruses.find(parent_ids.at(i));
+		if(it == all_viruses.end()){
+			//rzuc wyjatek VirusNotFound
+			exit(0);
+		}
+	}
+	
+	shared_ptr<Virus_node> to_add(new Virus_node(Virus(id)));
+	for(int i = 0; i < parent_ids.size(); ++i){
+		it = all_viruses.find(parent_ids.at(i));
+		to_add->parents.insert(it->second);
+		it->second->children.insert(to_add);
+		}
+	all_viruses.insert(make_pair(id, to_add));
+}
+
+// [ADD]
+template<class Virus>
+void VirusGenealogy<Virus>::connect(typename Virus::id_type const &child_id, typename Virus::id_type const &parent_id)
+{
+	auto child_it = all_viruses.find(child_id);
+	auto parent_it = all_viruses.find(parent_id);
+	
+	if(child_it == all_viruses.end() || parent_it == all_viruses.end()){
+		//rzuc wyjatek VirusNotFound
+		exit(0);
+	}
+	// co jesli ten syn juz jest ojcem nowego ojca?
+	// co jesli krawedz istnieje?
+	// co jesli ojciec == syn?
+	// co jesli syn == stem_node->virus.get_id()?
+	
+	child_it->second->parents.insert(parent_it->second);
+	parent_it->second->children.insert(child_it->second);
+}
+
+
+// [ADD]
+template<class Virus>
+void VirusGenealogy<Virus>::remove(typename Virus::id_type const &id)
+{
+	if(id == stem_node->virus.get_id()){
+		//rzuc wyjatek TriedToRemoveStemVirus
+		exit(0);
+	}
+	
+	if(all_viruses.find(id) == all_viruses.end()){
+		//rzuc wyjatek VirusNotFound
+		exit(0);
+	}
+	
+	auto me = all_viruses.find(id)->second;
+	remove(me);
+}
+
+
+// [ADD] tez te wskazniki pierwszy raz na oczy widze wiec moze byc zle :P
+template<class Virus>
+void VirusGenealogy<Virus>::remove(shared_ptr<Virus_node> me)
+{
+	typename set<shared_ptr<Virus_node> >::iterator it = me->parents.begin();
+	
+	while(it != me->parents.end()){
+		if((*it)->children.find(me) != (*it)->children.end()){
+			(*it)->children.erase(me);
+			}
+		++it;
+	}
+	// nie jestem juz niczyim synem
+	
+	it = me->children.begin();
+	while(it != me->children.end()){
+		if((*it)->parents.find(me) != (*it)->parents.end())
+			(*it)->parents.erase(me);
+		++it;
+	}
+	
+	// nikt nie uwaza mnie za ojca
+	
+	me->children.clear();
+	me->parents.clear();
+	
+	all_viruses.erase(me->virus.get_id());
+	
+}
+
 #endif
