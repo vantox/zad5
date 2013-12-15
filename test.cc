@@ -103,10 +103,38 @@ void memory_test()
 	//gens.remove("B");
 	
 }
+
+void forum_test()
+{
+	VirusGenealogy<Virus> gens("A");
+	gens.create("C", "A");
+	gens.create("B", "A");
+	gens.connect("C", "B");
+	gens.printAll();
+	cout << "------------------------------\n";
+	gens.connect("C", "B");
+	gens.printAll();
+	//działa bo set nie jest multisetem :D
+	
+	vector<typename Virus::id_type> v;
+	try{
+		gens.create("D", v);
+	}
+	catch(exception &e){
+		cout << e.what() << "\n";
+	}
+	cout << "------------------------------\n";
+	gens.printAll();
+	
+	
+	
+}
+
 int main()
 {
 	//test1();
-	pchar_test();
+	//pchar_test();
 	//memory_test();
+	forum_test();
 	return 0;
 }

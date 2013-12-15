@@ -237,6 +237,8 @@ void VirusGenealogy<Virus>::create(typename Virus::id_type const &id, vector<typ
 	if(all_viruses.find(id) != all_viruses.end()){
 		throw VirusAlreadyCreated();
 	}
+	if(parent_ids.size() == 0)
+		throw VirusNotFound();
 	
 	auto it = all_viruses.begin(); 
 	// auto == typename std::map<typename Virus::id_type, shared_ptr<Virus_node> >::iterator
