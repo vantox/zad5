@@ -13,33 +13,27 @@ using namespace std;
 class VirusNotFound : public exception
 {
 	public:
-		string s = "Virus not found.";
-		VirusNotFound () {}
 		virtual const char* what() const throw() 
 		{
-		return s.c_str();
+			return "Virus not found";
 		}
 };
 
 class VirusAlreadyCreated : public exception
 {
 	public:
-		string s = "Virus already created.";
-		VirusAlreadyCreated() {}
 		virtual const char* what() const throw() 
 		{
-		return s.c_str();
+			return "Virus already created.";
 		}
 };
 
 class TriedToRemoveStemVirus : public exception
 {
 	public:
-		string s = "Tried to remove stem virus.";
-		TriedToRemoveStemVirus() {}
 		virtual const char* what() const throw() 
 		{
-		return s.c_str();
+			return "Tried to remove stem virus.";
 		}
 };
 
